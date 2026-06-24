@@ -6,13 +6,10 @@
 <title>Rendición de Ruta · ECR Group</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script type="module">
-// ══════════════════════════════════════════
-// FIREBASE CONFIG
-// ══════════════════════════════════════════
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, setDoc, collection, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
+<!-- Firebase compat (funciona sin módulos ES) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyAIfZowaJUXzWAc18Rp--9uKDpUqMtcua4",
   authDomain: "kms-supervisores-coordinadores.firebaseapp.com",
@@ -21,16 +18,26 @@ const firebaseConfig = {
   messagingSenderId: "391124444800",
   appId: "1:391124444800:web:8fa21f1aaa4ffb2a82a865"
 };
+firebase.initializeApp(firebaseConfig);
+const _fbDB = firebase.firestore();
 
-const fbApp = initializeApp(firebaseConfig);
-const db = getFirestore(fbApp);
-
-// Exponer al scope global para usar desde el HTML
-window._db = db;
-window._fsLib = { doc, setDoc, collection, onSnapshot, query, where, getDocs };
-
-// Avisar que Firebase está listo
+// API compatible con el código existente
+window._db = _fbDB;
+window._fsLib = {
+  doc: (db, col, id) => db.collection(col).doc(id),
+  setDoc: (ref, data) => ref.set(data),
+  collection: (db, col) => db.collection(col),
+  onSnapshot: (q, cb, err) => q.onSnapshot(cb, err),
+  query: (col, ...wheres) => {
+    let q = col;
+    wheres.forEach(w => { q = q.where(w._field, w._op, w._val); });
+    return q;
+  },
+  where: (field, op, val) => ({ _field: field, _op: op, _val: val }),
+  getDocs: (q) => q.get()
+};
 window.dispatchEvent(new Event('firebaseReady'));
+console.log('✅ Firebase inicializado');
 </script>
 <style>
 :root {
