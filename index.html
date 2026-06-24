@@ -1447,7 +1447,6 @@ function toggleDay(k){
 
 function selectDayAndFocus(k){
   document.getElementById('planDiaSel').value=k;
-  switchTopTab(2);
   document.getElementById('planDiaSel').scrollIntoView({behavior:'smooth',block:'center'});
 }
 
@@ -1699,16 +1698,20 @@ async function cargarDatosAdmin() {
   adminData = {};
 
   console.log('🔍 Admin query: anio=', anio, 'mes=', mes, typeof anio, typeof mes);
-  const q = query(collection(window._db, 'rutas'), where('anio','==',anio), where('mes','==',mes));
-  adminUnsubscribe = onSnapshot(q, (snapshot) => {
+  // Query simple por anio para evitar índice compuesto, filtrar mes en cliente
+  const q = collection(window._db, 'rutas').where('anio','==',anio);
+  adminUnsubscribe = q.onSnapshot((snapshot) => {
     adminData = {};
-    snapshot.forEach(d => { adminData[d.id] = d.data(); });
+    snapshot.forEach(d => {
+      const data = d.data();
+      if (data.mes === mes) adminData[d.id] = data; // filtrar mes en cliente
+    });
     console.log('📊 Admin snapshot:', Object.keys(adminData).length, 'docs', Object.values(adminData).map(d => d.fecha + ' ' + d.usuario_nombre));
     document.getElementById('adminSyncStatus').textContent = `✅ ${Object.keys(adminData).length} días cargados · ${new Date().toLocaleTimeString('es-CL')}`;
     renderCuadrillas();
     renderLocales();
   }, (err) => {
-    document.getElementById('adminSyncStatus').textContent = '❌ Error de conexión';
+    document.getElementById('adminSyncStatus').textContent = '❌ Error: ' + err.message;
     console.error('Admin Firestore error:', err);
   });
 }
@@ -1867,16 +1870,16 @@ async function cargarMisLocales() {
   if (misLocalesUnsubscribe) misLocalesUnsubscribe();
   document.getElementById('misLocalesStatus').textContent = '⏳ Cargando...';
 
-  const q = query(
-    collection(window._db, 'rutas'),
-    where('anio','==',anio),
-    where('mes','==',mes),
-    where('usuario_nombre','==',nombreMaestra)
-  );
+  const q = collection(window._db, 'rutas')
+    .where('anio','==',anio)
+    .where('usuario_nombre','==',nombreMaestra);
 
-  misLocalesUnsubscribe = onSnapshot(q, (snapshot) => {
+  misLocalesUnsubscribe = q.onSnapshot((snapshot) => {
     const docs = [];
-    snapshot.forEach(d => docs.push(d.data()));
+    snapshot.forEach(d => {
+      const data = d.data();
+      if (data.mes === mes) docs.push(data); // filtrar mes en cliente
+    });
     document.getElementById('misLocalesStatus').textContent = `✅ ${docs.length} días · ${new Date().toLocaleTimeString('es-CL')}`;
     renderMisLocales(docs, nombreMaestra);
   });
