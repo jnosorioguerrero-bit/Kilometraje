@@ -1116,6 +1116,14 @@ function onPersonalChange() {
             + ' <span style="color:var(--muted);">(' + distancia.toFixed(1) + ' km desde domicilio)</span>';
           domDiv.style.color = 'var(--text)';
           recalcAll();
+          // Actualizar vista móvil con base ya lista
+          if (document.body.classList.contains('mobile-mode')) {
+            mobRenderVisitas();
+            if (mobGpsLat) mobMostrarCercanos();
+            // Mostrar local base en el hero
+            const mobSub = document.getElementById('mobDaySub');
+            if (mobSub) mobSub.textContent = '📍 Sale desde: ' + local.nombre;
+          }
         }
       } else {
         domDiv.textContent = 'No se pudo geocodificar el domicilio — ingresa coordenadas manualmente';
@@ -2308,17 +2316,19 @@ function mobRenderVisitas() {
   // Lista de visitas
   const list = document.getElementById('mobVisitsList');
   if (!visitas.length) {
-    list.innerHTML = '<div class="mob-empty">Sin visitas registradas.<br>Usa el GPS o agrega desde el historial.</div>';
+    list.innerHTML = '<div class="mob-empty">Sin visitas registradas.<br>Usa el GPS o agrega manualmente.</div>';
     return;
   }
 
+  const baseNombre = document.getElementById('baseNombre').value || 'Base';
+  const locked = lockedDays.has(mobDayKey);
+
   let prevLat = baseLat, prevLon = baseLon;
-  list.innerHTML = visitas.map((v, i) => {
+  const filas = visitas.map((v, i) => {
     const segKm = (v.lat && v.lon && prevLat && prevLon)
       ? (haversine(prevLat, prevLon, v.lat, v.lon) * factor).toFixed(1)
       : '—';
     if (v.lat) { prevLat = v.lat; prevLon = v.lon; }
-    const locked = lockedDays.has(mobDayKey);
     return `<div class="mob-visit-item">
       <span class="mob-visit-num">${i+1}</span>
       <div class="mob-visit-info">
@@ -2329,6 +2339,26 @@ function mobRenderVisitas() {
       ${!locked ? `<button class="mob-visit-del" onclick="mobEliminarVisita(${i})">✕</button>` : ''}
     </div>`;
   }).join('');
+
+  // Local de regreso (más cercano al domicilio desde el último)
+  let retornoKm = '—';
+  if (baseLat && baseLon && prevLat && prevLon) {
+    retornoKm = (haversine(prevLat, prevLon, baseLat, baseLon) * factor).toFixed(1);
+  }
+
+  const baseRow = baseLat ? `<div class="mob-visit-item" style="background:#f5fff8;border-left-color:var(--success);">
+    <span class="mob-visit-num">🏠</span>
+    <div class="mob-visit-info"><div class="mob-visit-name" style="color:var(--success);">${baseNombre}</div><div class="mob-visit-dir">Punto de partida y regreso</div></div>
+    <span class="mob-visit-km" style="color:var(--success);"></span>
+  </div>` : '';
+
+  const retornoRow = baseLat ? `<div class="mob-visit-item" style="background:#f5fff8;border-left-color:var(--success);">
+    <span class="mob-visit-num">🏠</span>
+    <div class="mob-visit-info"><div class="mob-visit-name" style="color:var(--success);">${baseNombre}</div><div class="mob-visit-dir">Regreso</div></div>
+    <span class="mob-visit-km" style="color:var(--success);">+${retornoKm} km</span>
+  </div>` : '';
+
+  list.innerHTML = baseRow + filas + retornoRow;
 }
 
 function mobEliminarVisita(idx) {
