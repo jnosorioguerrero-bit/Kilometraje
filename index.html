@@ -1424,7 +1424,13 @@ function renderDayCard(k){
   const anio=parseInt(document.getElementById('planAnio').value);
   const d=parseInt(k.split('-')[2]);
   const dowName=DIAS_SEMANA[new Date(anio,mes,d).getDay()];
+  const wasHidden = card.style.display === 'none';
   card.outerHTML=buildDayCardHTML(k,d,dowName,anio,mes);
+  // Si era un placeholder apilado, mantenerlo oculto
+  if(wasHidden){
+    const newCard = document.getElementById('dayCard_'+k);
+    if(newCard) newCard.style.display='none';
+  }
 }
 
 function toggleDay(k){
