@@ -1691,16 +1691,18 @@ async function cargarDatosAdmin() {
   document.getElementById('adminSyncStatus').textContent = '⏳ Cargando...';
   adminData = {};
 
+  console.log('🔍 Admin query: anio=', anio, 'mes=', mes, typeof anio, typeof mes);
   const q = query(collection(window._db, 'rutas'), where('anio','==',anio), where('mes','==',mes));
   adminUnsubscribe = onSnapshot(q, (snapshot) => {
     adminData = {};
     snapshot.forEach(d => { adminData[d.id] = d.data(); });
+    console.log('📊 Admin snapshot:', Object.keys(adminData).length, 'docs', Object.values(adminData).map(d => d.fecha + ' ' + d.usuario_nombre));
     document.getElementById('adminSyncStatus').textContent = `✅ ${Object.keys(adminData).length} días cargados · ${new Date().toLocaleTimeString('es-CL')}`;
     renderCuadrillas();
     renderLocales();
   }, (err) => {
     document.getElementById('adminSyncStatus').textContent = '❌ Error de conexión';
-    console.error(err);
+    console.error('Admin Firestore error:', err);
   });
 }
 
