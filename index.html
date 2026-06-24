@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rendición de Ruta · ECR Group</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ff7008">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ECR Rutas">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- Firebase compat (funciona sin módulos ES) -->
@@ -1685,37 +1692,21 @@ function waitForFirebase(fn) {
 
 async function guardarDiaEnFirestore(k, visitas) {
   if (!usuarioActivo) return;
-  waitForFirebase(async () => {
-    const { doc, setDoc } = window._fsLib;
-    const pm = PERSONAL.find(x => x.nombre_reges === usuarioActivo.nombre_reges);
-    const nombreMaestra = pm?.nombre_maestra || usuarioActivo.nombre_reges;
-    const [anio, mes, dia] = k.split('-');
-    try {
-      await setDoc(doc(window._db, 'rutas', k + '_' + usuarioActivo.rut), {
-        fecha: k,
-        anio: parseInt(anio),
-        mes: parseInt(mes),
-        dia: parseInt(dia),
-        usuario_rut: usuarioActivo.rut,
-        usuario_nombre: nombreMaestra,
-        visitas: visitas.map(v => ({
-          id: v.id,
-          nombre: v.nombre,
-          comuna: v.comuna || '',
-          coordinador: v.coordinador || '',
-          supervisor: v.supervisor || '',
-          lat: v.lat || null,
-          lon: v.lon || null,
-        })),
-        km: calcKmDia(k),
-        cerrado_at: new Date().toISOString(),
-      });
-      console.log('✅ Día guardado en Firestore:', k);
-    } catch(e) {
-      console.error('❌ Error guardando en Firestore:', e);
-      alert('⚠ No se pudo guardar el día en la nube. Verifica tu conexión.');
-    }
-  });
+  const visitasClean = visitas.map(v => ({
+    id: v.id, nombre: v.nombre, comuna: v.comuna || '',
+    coordinador: v.coordinador || '', supervisor: v.supervisor || '',
+    lat: v.lat || null, lon: v.lon || null,
+  }));
+
+  // Siempre encolar (funciona online y offline)
+  encolarSync(k, visitasClean);
+
+  // Si hay conexión, procesar inmediatamente
+  if (navigator.onLine && window._db) {
+    procesarColaSync();
+  } else {
+    mostrarToast('📵 Sin conexión — se enviará cuando vuelva la señal');
+  }
 }
 
 function resubirDiasCerrados() {
@@ -2551,6 +2542,103 @@ function limpiarLocal() {
   const k = lsKey();
   if (k) localStorage.removeItem(k);
 }
+
+
+// ══════════════════════════════════════════════════
+// PWA — SERVICE WORKER + SINCRONIZACIÓN OFFLINE
+// ══════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('✅ SW registrado:', reg.scope))
+      .catch(err => console.warn('SW error:', err));
+  });
+}
+
+// Cola de sincronización offline
+const SYNC_QUEUE_KEY = 'ecr_sync_queue';
+
+function encolarSync(k, visitas) {
+  try {
+    const queue = JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY) || '[]');
+    // Reemplazar si ya existe el mismo día
+    const idx = queue.findIndex(x => x.k === k && x.rut === usuarioActivo?.rut);
+    const entry = {
+      k, visitas,
+      rut: usuarioActivo?.rut,
+      nombre: usuarioActivo ? (PERSONAL.find(x => x.nombre_reges === usuarioActivo.nombre_reges)?.nombre_maestra || usuarioActivo.nombre_reges) : '',
+      km: calcKmDia(k),
+      ts: new Date().toISOString()
+    };
+    if (idx >= 0) queue[idx] = entry;
+    else queue.push(entry);
+    localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+    console.log('📥 Encolado para sync:', k);
+  } catch(e) { console.warn('Error encolando:', e); }
+}
+
+function procesarColaSync() {
+  if (!window._db || !navigator.onLine) return;
+  try {
+    const queue = JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY) || '[]');
+    if (!queue.length) return;
+    console.log(`🔄 Sincronizando ${queue.length} día(s) pendientes...`);
+    const procesados = [];
+    queue.forEach(entry => {
+      const [anio, mes, dia] = entry.k.split('-');
+      const ref = window._fsLib.doc(window._db, 'rutas', entry.k + '_' + entry.rut);
+      window._fsLib.setDoc(ref, {
+        fecha: entry.k,
+        anio: parseInt(anio),
+        mes: parseInt(mes),
+        dia: parseInt(dia),
+        usuario_rut: entry.rut,
+        usuario_nombre: entry.nombre,
+        visitas: entry.visitas,
+        km: entry.km,
+        cerrado_at: entry.ts,
+        synced_at: new Date().toISOString(),
+      }).then(() => {
+        console.log('✅ Sincronizado:', entry.k);
+        procesados.push(entry.k);
+        if (procesados.length === queue.length) {
+          localStorage.removeItem(SYNC_QUEUE_KEY);
+          mostrarToast(`☁ ${procesados.length} día(s) sincronizados`);
+        }
+      }).catch(e => console.error('Error sync:', entry.k, e));
+    });
+  } catch(e) { console.warn('Error procesando cola:', e); }
+}
+
+// Intentar sincronizar cuando vuelve la conexión
+window.addEventListener('online', () => {
+  mostrarToast('📶 Conexión restaurada — sincronizando...');
+  setTimeout(procesarColaSync, 1000);
+});
+
+window.addEventListener('offline', () => {
+  mostrarToast('📵 Sin conexión — guardando localmente');
+});
+
+// Toast de notificación
+function mostrarToast(msg, duration=3000) {
+  let toast = document.getElementById('syncToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'syncToast';
+    toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;font-family:DM Mono,monospace;font-size:12px;padding:10px 18px;z-index:9998;white-space:nowrap;border-radius:2px;transition:opacity .3s;';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.opacity = '0'; }, duration);
+}
+
+// Sincronizar al iniciar si hay cola pendiente
+window.addEventListener('firebaseReady', () => {
+  setTimeout(procesarColaSync, 2000);
+});
 
 function initOptMes() {
   const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
