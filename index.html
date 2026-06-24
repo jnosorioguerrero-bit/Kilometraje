@@ -1697,14 +1697,14 @@ async function cargarDatosAdmin() {
   document.getElementById('adminSyncStatus').textContent = '⏳ Cargando...';
   adminData = {};
 
-  console.log('🔍 Admin query: anio=', anio, 'mes=', mes, typeof anio, typeof mes);
-  // Query simple por anio para evitar índice compuesto, filtrar mes en cliente
+  const mesReal = mes + 1; // selector es 0-based (5=Junio), Firestore guarda 1-based (6=Junio)
+  console.log('🔍 Admin query: anio=', anio, 'mesReal=', mesReal);
   const q = collection(window._db, 'rutas').where('anio','==',anio);
   adminUnsubscribe = q.onSnapshot((snapshot) => {
     adminData = {};
     snapshot.forEach(d => {
       const data = d.data();
-      if (data.mes === mes) adminData[d.id] = data; // filtrar mes en cliente
+      if (data.mes === mesReal) adminData[d.id] = data; // filtrar mes en cliente (1-based)
     });
     console.log('📊 Admin snapshot:', Object.keys(adminData).length, 'docs', Object.values(adminData).map(d => d.fecha + ' ' + d.usuario_nombre));
     document.getElementById('adminSyncStatus').textContent = `✅ ${Object.keys(adminData).length} días cargados · ${new Date().toLocaleTimeString('es-CL')}`;
@@ -1878,7 +1878,7 @@ async function cargarMisLocales() {
     const docs = [];
     snapshot.forEach(d => {
       const data = d.data();
-      if (data.mes === mes) docs.push(data); // filtrar mes en cliente
+      if (data.mes === (mes + 1)) docs.push(data); // filtrar mes en cliente (1-based)
     });
     document.getElementById('misLocalesStatus').textContent = `✅ ${docs.length} días · ${new Date().toLocaleTimeString('es-CL')}`;
     renderMisLocales(docs, nombreMaestra);
