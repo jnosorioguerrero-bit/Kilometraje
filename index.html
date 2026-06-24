@@ -955,6 +955,9 @@ function doLogin() {
   } else {
     sel.value = u.nombre_reges;
     onPersonalChange();
+    // Cargar datos guardados localmente
+    cargarLocal();
+    buildCalendar();
     // Preseleccionar coordinador y supervisor en el panel de visitas
     const pm = PERSONAL.find(x => x.nombre_reges === u.nombre_reges);
     if (pm && pm.nombre_maestra) {
@@ -972,6 +975,7 @@ function doLogout() {
   document.getElementById('userBadge').style.display = 'none';
   document.getElementById('loginPass').value = '';
   document.getElementById('loginUser').value = '';
+  limpiarLocal();
   planData = {};
   lockedDays = new Set();
   const sel = document.getElementById('personalSel');
@@ -1646,6 +1650,7 @@ function removeFromDay(k,i){
   if(planData[k]){planData[k].splice(i,1);if(!planData[k].length)delete planData[k];}
   renderDayCard(k);
   updateMonthlySummary();
+  guardarLocal();
 }
 
 function buildMapsUrl(k){
@@ -1662,7 +1667,7 @@ function lockDay(k){
   lockedDays.add(k);
   renderDayCard(k);
   updateMonthlySummary();
-  // Guardar en Firestore
+  guardarLocal(); // persistir locked en local
   guardarDiaEnFirestore(k, visitas);
 }
 
@@ -2367,6 +2372,7 @@ function mobEliminarVisita(idx) {
   mobRenderVisitas();
   renderDayCard(mobDayKey);
   updateMonthlySummary();
+  guardarLocal();
 }
 
 function mobAutoGPS() {
@@ -2441,9 +2447,10 @@ function mobAgregarVisita(idx) {
   if (planData[mobDayKey].find(v => v.id === cliente.id)) return;
   planData[mobDayKey].push(cliente);
   mobRenderVisitas();
-  mobMostrarCercanos(); // refrescar para marcar como agregado
+  mobMostrarCercanos();
   renderDayCard(mobDayKey);
   updateMonthlySummary();
+  guardarLocal();
 }
 
 function mobCerrarDia() {
@@ -2499,6 +2506,50 @@ function mobRenderHistorial() {
       ${visitas.map(v => `<div class="mob-hist-visit">${v.nombre} · <span style="color:var(--muted);font-size:10px;">${v.comuna||''}</span></div>`).join('')}
     </div>
   `).join('');
+}
+
+
+// ══════════════════════════════════════════════════
+// PERSISTENCIA LOCAL (localStorage)
+// ══════════════════════════════════════════════════
+function lsKey() {
+  // Clave única por usuario
+  return usuarioActivo ? 'ecr_ruta_' + usuarioActivo.rut : null;
+}
+
+function guardarLocal() {
+  const k = lsKey();
+  if (!k) return;
+  try {
+    localStorage.setItem(k, JSON.stringify({
+      planData,
+      lockedArr: [...lockedDays],
+      savedAt: new Date().toISOString()
+    }));
+  } catch(e) { console.warn('localStorage lleno:', e); }
+}
+
+function cargarLocal() {
+  const k = lsKey();
+  if (!k) return false;
+  try {
+    const raw = localStorage.getItem(k);
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    if (saved.planData) {
+      Object.assign(planData, saved.planData);
+    }
+    if (saved.lockedArr) {
+      saved.lockedArr.forEach(d => lockedDays.add(d));
+    }
+    console.log('✅ Datos cargados desde localStorage:', Object.keys(planData).length, 'días');
+    return true;
+  } catch(e) { return false; }
+}
+
+function limpiarLocal() {
+  const k = lsKey();
+  if (k) localStorage.removeItem(k);
 }
 
 function initOptMes() {
@@ -2739,6 +2790,7 @@ function cargarRutaAlCalendario() {
 
   buildCalendar();
   switchMainTab('rendicion');
+  guardarLocal();
 
   const msg = `✅ ${sobrescritos} días cargados al calendario.` + (saltados ? `\n⚠ ${saltados} días omitidos (ya cerrados).` : '');
   alert(msg);
