@@ -230,6 +230,22 @@ select.hier-select:disabled{opacity:.4;cursor:not-allowed;}
 ::-webkit-scrollbar{width:6px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border);}
+/* ── GPS NEARBY ─────────────────────────────────── */
+.gps-btn{width:100%;padding:11px;background:#1a73e8;border:none;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;margin-bottom:10px;}
+.gps-btn:hover{opacity:.88;}
+.gps-btn:disabled{opacity:.5;cursor:not-allowed;}
+.gps-nearby{display:none;border:1px solid var(--border);overflow:hidden;}
+.gps-nearby.open{display:block;}
+.gps-nearby-header{background:#e8f0fe;border-bottom:1px solid #c5d3f0;padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:1.5px;color:#1a73e8;text-transform:uppercase;font-family:DM Mono,monospace;}
+.gps-nearby-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.gps-nearby-item:last-child{border-bottom:none;}
+.gps-nearby-item:hover{background:#f0f5ff;}
+.gps-nearby-item:active{background:#d8e8ff;}
+.gps-nearby-dist{font-family:DM Mono,monospace;font-size:11px;color:#1a73e8;font-weight:700;min-width:48px;text-align:right;}
+.gps-nearby-name{font-size:12px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gps-nearby-comuna{font-size:10px;color:var(--muted);font-family:DM Mono,monospace;}
+.gps-status{font-family:DM Mono,monospace;font-size:11px;color:var(--muted);text-align:center;padding:8px;display:none;}
+
 /* ── OPTIMIZADOR ────────────────────────────────── */
 .opt-layout{max-width:1400px;margin:0 auto;padding:20px;display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start;}
 .opt-panel{background:var(--surface);border:1px solid var(--border);padding:0;overflow:hidden;}
@@ -543,6 +559,19 @@ select.hier-select:disabled{opacity:.4;cursor:not-allowed;}
             <div class="sala-list" id="planSalaListSup"></div>
           </div>
           <div id="planSearchMode" style="display:none;">
+            <button class="gps-btn" id="gpsBtn" onclick="buscarCercanosGPS()">
+              📍 Usar mi ubicación actual
+            </button>
+            <div class="gps-status" id="gpsStatus"></div>
+            <div class="gps-nearby" id="gpsNearby">
+              <div class="gps-nearby-header" id="gpsNearbyHeader">Locales más cercanos</div>
+              <div id="gpsNearbyList"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin:8px 0;">
+              <div style="flex:1;height:1px;background:var(--border);"></div>
+              <span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">o buscar manualmente</span>
+              <div style="flex:1;height:1px;background:var(--border);"></div>
+            </div>
             <div class="search-wrap">
               <input type="text" id="searchPlan" placeholder="Buscar cliente..." autocomplete="off">
               <div class="dropdown" id="dropPlan"></div>
@@ -1003,6 +1032,10 @@ function setPlanMode(mode){
   document.getElementById('planHier').style.display=mode==='hier'?'':'none';
   document.getElementById('planSupMode').style.display=mode==='sup'?'':'none';
   document.getElementById('planSearchMode').style.display=mode==='search'?'':'none';
+  if(mode==='search') {
+    // Auto-trigger GPS al entrar en modo búsqueda
+    setTimeout(buscarCercanosGPS, 100);
+  }
 }
 
 // ── Hier selects ──────────────────────────────────────────────
@@ -1945,6 +1978,117 @@ function renderMisLocales(docs, nombreMaestra) {
       </tr></thead>
       <tbody>${filaVisit}${filaNoVisit}</tbody>
     </table>`;
+}
+
+
+// ══════════════════════════════════════════════════
+// GPS — LOCALES CERCANOS
+// ══════════════════════════════════════════════════
+let gpsLastLat = null, gpsLastLon = null;
+
+function buscarCercanosGPS() {
+  const btn = document.getElementById('gpsBtn');
+  const status = document.getElementById('gpsStatus');
+  const nearby = document.getElementById('gpsNearby');
+
+  if (!navigator.geolocation) {
+    status.style.display = 'block';
+    status.textContent = '⚠ Tu navegador no soporta GPS.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Obteniendo ubicación...';
+  status.style.display = 'block';
+  status.textContent = '📡 Buscando señal GPS...';
+  nearby.classList.remove('open');
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      gpsLastLat = pos.coords.latitude;
+      gpsLastLon = pos.coords.longitude;
+      const precision = pos.coords.accuracy ? ` (±${Math.round(pos.coords.accuracy)}m)` : '';
+      status.textContent = `📍 Ubicación obtenida${precision}`;
+      btn.disabled = false;
+      btn.innerHTML = '🔄 Actualizar ubicación';
+      mostrarCercanos(gpsLastLat, gpsLastLon);
+    },
+    (err) => {
+      btn.disabled = false;
+      btn.innerHTML = '📍 Usar mi ubicación actual';
+      status.style.display = 'block';
+      const msgs = {
+        1: '🚫 Permiso denegado. Activa la ubicación en tu navegador.',
+        2: '📡 No se pudo obtener la ubicación. Intenta nuevamente.',
+        3: '⏱ Tiempo de espera agotado. Intenta nuevamente.',
+      };
+      status.textContent = msgs[err.code] || '❌ Error al obtener ubicación.';
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+  );
+}
+
+function mostrarCercanos(lat, lon) {
+  // Obtener cartera del usuario activo
+  const pm = usuarioActivo ? PERSONAL.find(x => x.nombre_reges === usuarioActivo.nombre_reges) : null;
+  const nombreMaestra = pm?.nombre_maestra || (usuarioActivo?.nombre_reges);
+
+  let cartera = CLIENTES.filter(c => c.lat && c.lon && Math.abs(c.lat) < 90);
+  // Si no es admin, filtrar solo su cartera
+  if (usuarioActivo && !usuarioActivo.esAdmin && nombreMaestra) {
+    cartera = cartera.filter(c => c.supervisor === nombreMaestra || c.coordinador === nombreMaestra);
+  }
+
+  // Calcular distancia a cada local y ordenar
+  const conDistancia = cartera.map(c => ({
+    ...c,
+    distancia: haversine(lat, lon, c.lat, c.lon) * factor
+  })).sort((a, b) => a.distancia - b.distancia).slice(0, 5);
+
+  const header = document.getElementById('gpsNearbyHeader');
+  const list = document.getElementById('gpsNearbyList');
+  const nearby = document.getElementById('gpsNearby');
+
+  header.textContent = `📍 5 locales más cercanos a ti`;
+  // Guardar los candidatos en una variable global para acceder por índice
+  window._gpsCandidatos = conDistancia;
+  list.innerHTML = conDistancia.map((c, i) => `
+    <div class="gps-nearby-item" onclick="agregarDesdeGPS(${i})">
+      <div>
+        <div class="gps-nearby-name">${c.nombre}</div>
+        <div class="gps-nearby-comuna">${c.comuna || ''}</div>
+      </div>
+      <div class="gps-nearby-dist">${c.distancia.toFixed(1)} km</div>
+    </div>
+  `).join('');
+  nearby.classList.add('open');
+}
+
+function agregarDesdeGPS(idx) {
+  const cliente = window._gpsCandidatos[idx];
+  if (!cliente) return;
+  // Agregar al día seleccionado
+  const k = document.getElementById('planDiaSel').value;
+  if (!k) {
+    alert('Primero selecciona un día destino.');
+    return;
+  }
+  if (!planData[k]) planData[k] = [];
+  // Evitar duplicados
+  if (planData[k].find(v => v.id === cliente.id)) {
+    alert(`${cliente.nombre} ya está en este día.`);
+    return;
+  }
+  planData[k].push(cliente);
+  renderDayCard(k);
+  updateMonthlySummary();
+  // Feedback visual
+  const status = document.getElementById('gpsStatus');
+  status.style.display = 'block';
+  status.textContent = `✅ ${cliente.nombre} agregado al día`;
+  setTimeout(() => {
+    if (gpsLastLat) mostrarCercanos(gpsLastLat, gpsLastLon);
+  }, 800);
 }
 
 function initOptMes() {
