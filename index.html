@@ -414,9 +414,156 @@ select.hier-select:disabled{opacity:.4;cursor:not-allowed;}
   .day-summary { display: none; } /* muy poco espacio */
 }
 
+
+/* ════════════════════════════════════════════
+   VISTA MÓVIL DEDICADA
+   Solo activa en pantallas < 768px para no-admin
+   ════════════════════════════════════════════ */
+#mobileApp {display:none;}
+
+@media (max-width: 768px) {
+  body.mobile-mode #mobileApp { display:flex; flex-direction:column; min-height:100vh; }
+  body.mobile-mode #loginScreen { position:fixed; inset:0; z-index:9999; }
+  body.mobile-mode > *:not(#mobileApp):not(#loginScreen):not(script):not(style) { display:none !important; }
+
+  /* Header móvil */
+  .mob-header { background:var(--surface); border-bottom:2px solid var(--accent); padding:12px 16px; display:flex; align-items:center; gap:10px; position:sticky; top:0; z-index:100; }
+  .mob-header-logo { font-size:18px; font-weight:900; letter-spacing:2px; color:var(--accent); }
+  .mob-header-user { font-family:DM Mono,monospace; font-size:11px; color:var(--muted); flex:1; }
+  .mob-header-logout { background:none; border:1px solid var(--border); color:var(--muted); font-family:DM Mono,monospace; font-size:10px; padding:4px 8px; cursor:pointer; }
+
+  /* Day hero */
+  .mob-day-hero { background:var(--accent); color:#000; padding:16px; }
+  .mob-day-label { font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; opacity:.7; }
+  .mob-day-date { font-size:32px; font-weight:900; line-height:1; }
+  .mob-day-sub { font-size:13px; opacity:.8; margin-top:2px; }
+  .mob-day-stats { display:flex; gap:16px; margin-top:12px; }
+  .mob-stat { background:rgba(0,0,0,.1); padding:8px 12px; flex:1; text-align:center; }
+  .mob-stat-val { font-size:20px; font-weight:900; }
+  .mob-stat-label { font-size:9px; letter-spacing:1px; text-transform:uppercase; opacity:.7; font-family:DM Mono,monospace; }
+
+  /* GPS button */
+  .mob-gps-btn { margin:14px 14px 0; padding:14px; background:#1a73e8; border:none; color:#fff; font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700; letter-spacing:1px; text-transform:uppercase; cursor:pointer; width:calc(100% - 28px); display:flex; align-items:center; justify-content:center; gap:8px; }
+  .mob-gps-btn:active { opacity:.85; }
+  .mob-gps-status { margin:6px 14px 0; font-family:DM Mono,monospace; font-size:11px; color:var(--muted); text-align:center; }
+
+  /* Locales cercanos móvil */
+  .mob-nearby { margin:10px 14px 0; border:1px solid #c5d3f0; overflow:hidden; display:none; }
+  .mob-nearby.open { display:block; }
+  .mob-nearby-title { background:#e8f0fe; padding:8px 12px; font-size:10px; font-weight:700; letter-spacing:1.5px; color:#1a73e8; text-transform:uppercase; font-family:DM Mono,monospace; }
+  .mob-nearby-item { display:flex; align-items:center; padding:12px 14px; border-bottom:1px solid var(--border); cursor:pointer; gap:12px; }
+  .mob-nearby-item:last-child { border-bottom:none; }
+  .mob-nearby-item:active { background:#f0f5ff; }
+  .mob-nearby-add { width:32px; height:32px; background:var(--accent); border:none; color:#000; font-size:20px; font-weight:900; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .mob-nearby-info { flex:1; min-width:0; }
+  .mob-nearby-name { font-size:13px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mob-nearby-meta { font-size:11px; color:var(--muted); font-family:DM Mono,monospace; margin-top:2px; }
+  .mob-nearby-dist { font-family:DM Mono,monospace; font-size:12px; color:#1a73e8; font-weight:700; white-space:nowrap; }
+
+  /* Lista de visitas del día */
+  .mob-visits-section { margin:14px 14px 0; }
+  .mob-visits-title { font-size:10px; font-weight:700; letter-spacing:2px; color:var(--muted); text-transform:uppercase; font-family:DM Mono,monospace; margin-bottom:8px; }
+  .mob-visit-item { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent2); padding:10px 12px; margin-bottom:6px; display:flex; align-items:center; gap:10px; }
+  .mob-visit-num { font-size:11px; font-weight:700; color:var(--accent); font-family:DM Mono,monospace; min-width:18px; }
+  .mob-visit-info { flex:1; min-width:0; }
+  .mob-visit-name { font-size:13px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mob-visit-dir { font-size:10px; color:var(--muted); font-family:DM Mono,monospace; }
+  .mob-visit-km { font-size:11px; color:var(--accent2); font-family:DM Mono,monospace; white-space:nowrap; }
+  .mob-visit-del { background:none; border:none; color:var(--danger); font-size:18px; cursor:pointer; padding:4px; opacity:.6; }
+  .mob-empty { text-align:center; padding:24px; color:var(--muted); font-family:DM Mono,monospace; font-size:12px; }
+
+  /* Bottom actions */
+  .mob-actions { padding:14px; margin-top:auto; display:flex; gap:10px; position:sticky; bottom:0; background:var(--bg); border-top:1px solid var(--border); }
+  .mob-btn-lock { flex:1; padding:14px; background:var(--success); border:none; color:#fff; font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:700; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }
+  .mob-btn-lock:disabled { opacity:.4; cursor:not-allowed; }
+  .mob-btn-hist { padding:14px 16px; background:var(--surface); border:1px solid var(--border); color:var(--muted); font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }
+
+  /* Historial */
+  .mob-hist-panel { display:none; position:fixed; inset:0; background:var(--bg); z-index:500; overflow-y:auto; }
+  .mob-hist-panel.open { display:block; }
+  .mob-hist-header { background:var(--surface); border-bottom:2px solid var(--accent); padding:14px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; }
+  .mob-hist-title { font-size:16px; font-weight:900; letter-spacing:1px; text-transform:uppercase; flex:1; }
+  .mob-hist-close { background:none; border:none; font-size:24px; cursor:pointer; color:var(--muted); }
+  .mob-hist-day { margin:10px 14px; background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent); overflow:hidden; }
+  .mob-hist-day-header { background:var(--surface2); padding:10px 14px; display:flex; align-items:center; gap:10px; }
+  .mob-hist-day-num { font-size:22px; font-weight:900; color:var(--accent); }
+  .mob-hist-day-info { flex:1; }
+  .mob-hist-day-dow { font-size:12px; font-weight:700; text-transform:uppercase; }
+  .mob-hist-day-km { font-family:DM Mono,monospace; font-size:11px; color:var(--accent2); }
+  .mob-hist-visit { padding:8px 14px; border-bottom:1px solid var(--border); font-size:12px; }
+  .mob-hist-visit:last-child { border-bottom:none; }
+}
+
 </style>
 </head>
 <body>
+
+<!-- ══════════════════════════════════════════
+     VISTA MÓVIL DEDICADA
+     ══════════════════════════════════════════ -->
+<div id="mobileApp">
+  <!-- Header -->
+  <div class="mob-header">
+    <div>
+      <div class="mob-header-logo">ECR GROUP</div>
+    </div>
+    <div class="mob-header-user" id="mobUserName">—</div>
+    <button class="mob-header-logout" onclick="doLogout()">Salir</button>
+  </div>
+
+  <!-- Día hero -->
+  <div class="mob-day-hero" id="mobDayHero">
+    <div class="mob-day-label">Hoy</div>
+    <div class="mob-day-date" id="mobDayDate">—</div>
+    <div class="mob-day-sub" id="mobDaySub">Junio 2026</div>
+    <div class="mob-day-stats">
+      <div class="mob-stat">
+        <div class="mob-stat-val" id="mobStatVisitas">0</div>
+        <div class="mob-stat-label">Visitas</div>
+      </div>
+      <div class="mob-stat">
+        <div class="mob-stat-val" id="mobStatKm">0.0</div>
+        <div class="mob-stat-label">Km ida</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GPS button -->
+  <button class="mob-gps-btn" id="mobGpsBtn" onclick="mobBuscarCercanos()">
+    📍 Estoy aquí — ver locales cercanos
+  </button>
+  <div class="mob-gps-status" id="mobGpsStatus"></div>
+
+  <!-- Locales cercanos -->
+  <div class="mob-nearby" id="mobNearby">
+    <div class="mob-nearby-title" id="mobNearbyTitle">Locales más cercanos</div>
+    <div id="mobNearbyList"></div>
+  </div>
+
+  <!-- Visitas del día -->
+  <div class="mob-visits-section">
+    <div class="mob-visits-title">Visitas de hoy</div>
+    <div id="mobVisitsList">
+      <div class="mob-empty">Sin visitas registradas.<br>Usa el GPS o agrega manualmente.</div>
+    </div>
+  </div>
+
+  <!-- Bottom actions -->
+  <div class="mob-actions">
+    <button class="mob-btn-hist" onclick="mobToggleHist()">📅 Mes</button>
+    <button class="mob-btn-lock" id="mobBtnLock" onclick="mobCerrarDia()">🔒 Cerrar día</button>
+  </div>
+
+  <!-- Panel historial del mes -->
+  <div class="mob-hist-panel" id="mobHistPanel">
+    <div class="mob-hist-header">
+      <div class="mob-hist-title">📅 Este mes</div>
+      <button class="mob-hist-close" onclick="mobToggleHist()">✕</button>
+    </div>
+    <div id="mobHistBody"></div>
+  </div>
+</div>
+
 <div id="loginScreen">
   <div class="login-box">
     <div class="login-logo">
@@ -813,6 +960,8 @@ function doLogin() {
     if (pm && pm.nombre_maestra) {
       setTimeout(() => preseleccionarCartera(pm.nombre_maestra), 200);
     }
+    // Activar vista móvil si corresponde
+    setTimeout(() => initMobileView(u), 300);
   }
 }
 
@@ -837,6 +986,7 @@ function doLogout() {
   document.querySelectorAll('.mode-btn').forEach(b => { b.style.pointerEvents = ''; b.style.opacity = ''; });
   document.getElementById('tabAdmin').style.display = 'none';
   document.getElementById('tabMisLocales').style.display = 'none';
+  document.body.classList.remove('mobile-mode');
   switchMainTab('rendicion');
   onPersonalChange();
   buildCalendar();
@@ -2089,6 +2239,236 @@ function agregarDesdeGPS(idx) {
   setTimeout(() => {
     if (gpsLastLat) mostrarCercanos(gpsLastLat, gpsLastLon);
   }, 800);
+}
+
+
+// ══════════════════════════════════════════════════
+// VISTA MÓVIL DEDICADA
+// ══════════════════════════════════════════════════
+const ES_MOVIL = () => window.innerWidth <= 768;
+const DIAS_MOB = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const MESES_MOB = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+let mobGpsLat = null, mobGpsLon = null;
+let mobDayKey = null; // key del día actual
+
+function initMobileView(usuario) {
+  if (!ES_MOVIL() || usuario.esAdmin) return;
+  document.body.classList.add('mobile-mode');
+  document.getElementById('mobUserName').textContent = usuario.nombre_reges;
+
+  // Calcular día de hoy
+  const hoy = new Date();
+  const mes = hoy.getMonth();
+  const anio = hoy.getFullYear();
+  const dia = hoy.getDate();
+  mobDayKey = dayKey(anio, mes, dia);
+
+  // Sincronizar selectores del panel principal
+  document.getElementById('planMes').value = mes;
+  document.getElementById('planAnio').value = anio;
+
+  // Mostrar fecha
+  const dow = DIAS_MOB[hoy.getDay()];
+  document.getElementById('mobDayDate').textContent = `${dia} ${dow}`;
+  document.getElementById('mobDaySub').textContent = `${MESES_MOB[mes]} ${anio}`;
+
+  // Si el día ya está cerrado, deshabilitar acciones
+  if (lockedDays.has(mobDayKey)) {
+    document.getElementById('mobBtnLock').disabled = true;
+    document.getElementById('mobBtnLock').textContent = '✅ Día cerrado';
+    document.getElementById('mobDayHero').style.background = 'var(--success)';
+  }
+
+  mobRenderVisitas();
+  mobAutoGPS();
+}
+
+function mobRenderVisitas() {
+  if (!mobDayKey) return;
+  const visitas = planData[mobDayKey] || [];
+  const baseLat = parseFloat(document.getElementById('baseLat').value);
+  const baseLon = parseFloat(document.getElementById('baseLon').value);
+
+  // Stats
+  document.getElementById('mobStatVisitas').textContent = visitas.length;
+
+  // Calcular km
+  let km = 0;
+  if (baseLat && baseLon && visitas.length) {
+    let prev = {lat: baseLat, lon: baseLon};
+    for (const v of visitas) {
+      if (v.lat && v.lon) { km += haversine(prev.lat, prev.lon, v.lat, v.lon); prev = v; }
+    }
+    km += haversine(prev.lat, prev.lon, baseLat, baseLon);
+    km *= factor;
+  }
+  document.getElementById('mobStatKm').textContent = km.toFixed(1);
+
+  // Lista de visitas
+  const list = document.getElementById('mobVisitsList');
+  if (!visitas.length) {
+    list.innerHTML = '<div class="mob-empty">Sin visitas registradas.<br>Usa el GPS o agrega desde el historial.</div>';
+    return;
+  }
+
+  let prevLat = baseLat, prevLon = baseLon;
+  list.innerHTML = visitas.map((v, i) => {
+    const segKm = (v.lat && v.lon && prevLat && prevLon)
+      ? (haversine(prevLat, prevLon, v.lat, v.lon) * factor).toFixed(1)
+      : '—';
+    if (v.lat) { prevLat = v.lat; prevLon = v.lon; }
+    const locked = lockedDays.has(mobDayKey);
+    return `<div class="mob-visit-item">
+      <span class="mob-visit-num">${i+1}</span>
+      <div class="mob-visit-info">
+        <div class="mob-visit-name">${v.nombre}</div>
+        <div class="mob-visit-dir">${v.comuna || ''}</div>
+      </div>
+      <span class="mob-visit-km">+${segKm} km</span>
+      ${!locked ? `<button class="mob-visit-del" onclick="mobEliminarVisita(${i})">✕</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function mobEliminarVisita(idx) {
+  if (!planData[mobDayKey]) return;
+  planData[mobDayKey].splice(idx, 1);
+  mobRenderVisitas();
+  renderDayCard(mobDayKey);
+  updateMonthlySummary();
+}
+
+function mobAutoGPS() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      mobGpsLat = pos.coords.latitude;
+      mobGpsLon = pos.coords.longitude;
+      document.getElementById('mobGpsStatus').textContent = '📍 Ubicación activa';
+      mobMostrarCercanos();
+    },
+    () => { document.getElementById('mobGpsStatus').textContent = ''; },
+    { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+  );
+}
+
+function mobBuscarCercanos() {
+  const btn = document.getElementById('mobGpsBtn');
+  const status = document.getElementById('mobGpsStatus');
+  if (!navigator.geolocation) { status.textContent = '⚠ GPS no disponible'; return; }
+  btn.textContent = '⏳ Obteniendo ubicación...';
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      mobGpsLat = pos.coords.latitude;
+      mobGpsLon = pos.coords.longitude;
+      btn.innerHTML = '📍 Estoy aquí — ver locales cercanos';
+      status.textContent = `📍 ±${Math.round(pos.coords.accuracy||0)}m`;
+      mobMostrarCercanos();
+    },
+    (err) => {
+      btn.innerHTML = '📍 Estoy aquí — ver locales cercanos';
+      status.textContent = err.code === 1 ? '🚫 Activa el GPS en tu teléfono' : '❌ Error de ubicación';
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+  );
+}
+
+function mobMostrarCercanos() {
+  if (!mobGpsLat || !mobGpsLon) return;
+  const pm = usuarioActivo ? PERSONAL.find(x => x.nombre_reges === usuarioActivo.nombre_reges) : null;
+  const nombreMaestra = pm?.nombre_maestra || usuarioActivo?.nombre_reges;
+  let cartera = CLIENTES.filter(c => c.lat && c.lon && Math.abs(c.lat) < 90);
+  if (usuarioActivo && !usuarioActivo.esAdmin && nombreMaestra) {
+    cartera = cartera.filter(c => c.supervisor === nombreMaestra || c.coordinador === nombreMaestra);
+  }
+  window._mobCandidatos = cartera.map(c => ({
+    ...c, dist: haversine(mobGpsLat, mobGpsLon, c.lat, c.lon) * factor
+  })).sort((a,b) => a.dist - b.dist).slice(0, 5);
+
+  const nearby = document.getElementById('mobNearby');
+  const list = document.getElementById('mobNearbyList');
+  list.innerHTML = window._mobCandidatos.map((c, i) => {
+    const yaAgregado = (planData[mobDayKey]||[]).find(v => v.id === c.id);
+    return `<div class="mob-nearby-item" onclick="${yaAgregado ? '' : `mobAgregarVisita(${i})`}" style="${yaAgregado ? 'opacity:.4;pointer-events:none;' : ''}">
+      <button class="mob-nearby-add" style="${yaAgregado ? 'background:var(--success);' : ''}">
+        ${yaAgregado ? '✓' : '+'}
+      </button>
+      <div class="mob-nearby-info">
+        <div class="mob-nearby-name">${c.nombre}</div>
+        <div class="mob-nearby-meta">${c.comuna || ''}</div>
+      </div>
+      <div class="mob-nearby-dist">${c.dist.toFixed(1)} km</div>
+    </div>`;
+  }).join('');
+  nearby.classList.add('open');
+}
+
+function mobAgregarVisita(idx) {
+  const cliente = window._mobCandidatos[idx];
+  if (!cliente || lockedDays.has(mobDayKey)) return;
+  if (!planData[mobDayKey]) planData[mobDayKey] = [];
+  if (planData[mobDayKey].find(v => v.id === cliente.id)) return;
+  planData[mobDayKey].push(cliente);
+  mobRenderVisitas();
+  mobMostrarCercanos(); // refrescar para marcar como agregado
+  renderDayCard(mobDayKey);
+  updateMonthlySummary();
+}
+
+function mobCerrarDia() {
+  const visitas = planData[mobDayKey] || [];
+  if (!visitas.length) { alert('No hay visitas para cerrar.'); return; }
+  if (!confirm(`¿Cerrar el día de hoy con ${visitas.length} visita(s)?`)) return;
+  lockedDays.add(mobDayKey);
+  guardarDiaEnFirestore(mobDayKey, visitas);
+  document.getElementById('mobBtnLock').disabled = true;
+  document.getElementById('mobBtnLock').textContent = '✅ Día cerrado';
+  document.getElementById('mobDayHero').style.background = 'var(--success)';
+  mobRenderVisitas();
+  renderDayCard(mobDayKey);
+  updateMonthlySummary();
+}
+
+function mobToggleHist() {
+  const panel = document.getElementById('mobHistPanel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) mobRenderHistorial();
+}
+
+function mobRenderHistorial() {
+  const mes = parseInt(document.getElementById('planMes').value);
+  const anio = parseInt(document.getElementById('planAnio').value);
+  const daysInMonth = new Date(anio, mes+1, 0).getDate();
+  const body = document.getElementById('mobHistBody');
+
+  const diasConVisitas = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const k = dayKey(anio, mes, d);
+    const visitas = planData[k] || [];
+    if (!visitas.length) continue;
+    const dow = DIAS_MOB[new Date(anio, mes, d).getDay()];
+    const locked = lockedDays.has(k);
+    diasConVisitas.push({d, k, dow, visitas, locked});
+  }
+
+  if (!diasConVisitas.length) {
+    body.innerHTML = '<div class="mob-empty" style="padding:40px;">Sin visitas registradas este mes.</div>';
+    return;
+  }
+
+  body.innerHTML = diasConVisitas.map(({d, dow, visitas, locked}) => `
+    <div class="mob-hist-day">
+      <div class="mob-hist-day-header">
+        <div class="mob-hist-day-num">${d}</div>
+        <div class="mob-hist-day-info">
+          <div class="mob-hist-day-dow">${dow} ${locked ? '🔒' : ''}</div>
+          <div class="mob-hist-day-km">${visitas.length} visitas</div>
+        </div>
+      </div>
+      ${visitas.map(v => `<div class="mob-hist-visit">${v.nombre} · <span style="color:var(--muted);font-size:10px;">${v.comuna||''}</span></div>`).join('')}
+    </div>
+  `).join('');
 }
 
 function initOptMes() {
